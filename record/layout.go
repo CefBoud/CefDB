@@ -1,5 +1,7 @@
 package record
 
+import "sort"
+
 // Layout is the struct of a record. It determines its slotsize and the offset of each field
 type Layout struct {
 	Schema   *Schema
@@ -10,7 +12,15 @@ type Layout struct {
 func NewLayout(s *Schema) *Layout {
 	pos := 4 // 4 bytes for inuse flag
 	offset := make(map[string]int)
-	for fname := range s.Fields {
+
+	// we sort the strings alphabetically
+	// ideally, other considerations such as memory alignment
+	var orderedFields []string
+	for f := range s.Fields {
+		orderedFields = append(orderedFields, f)
+	}
+	sort.Strings(orderedFields)
+	for _, fname := range orderedFields {
 		offset[fname] = pos
 		pos += s.FieldSizeInBytes(fname)
 	}

@@ -21,6 +21,11 @@ func NewSchema() *Schema {
 		Fields: map[string]FieldInfo{},
 	}
 }
+func NewSchemaWithFields(fields map[string]FieldInfo) *Schema {
+	return &Schema{
+		Fields: fields,
+	}
+}
 
 func (s *Schema) AddField(fname string, ftype int, flen int) {
 	s.Fields[fname] = FieldInfo{Type: ftype, Length: flen}
@@ -56,8 +61,15 @@ func (s *Schema) Add(fname string, s2 *Schema) {
 	s.AddField(fname, s2.FieldType(fname), s2.FieldLength(fname))
 }
 
-func (s *Schema) AddAll(fname string, s2 *Schema) {
+func (s *Schema) AddAll(s2 *Schema) {
 	for fname, finfo := range s2.Fields {
 		s.AddField(fname, finfo.Type, finfo.Length)
 	}
+}
+func (s *Schema) GetFields() []string {
+	var fieldNames []string
+	for k := range s.Fields {
+		fieldNames = append(fieldNames, k)
+	}
+	return fieldNames
 }

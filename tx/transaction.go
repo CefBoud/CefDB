@@ -18,6 +18,7 @@ type Transaction struct {
 	fm          *file.FileMgr
 	txnum       int
 	mybuffers   map[file.BlockId]*buffer.Buffer
+	myPins      map[file.BlockId]int
 }
 
 var nextTxNum int64
@@ -42,6 +43,7 @@ func NewTransaction(fm *file.FileMgr, lm *log.LogMgr, bm *buffer.BufferMgr) *Tra
 		txnum:     int(txnum),
 		concurMgr: NewConcurrencyMgr(),
 		mybuffers: make(map[file.BlockId]*buffer.Buffer),
+		myPins:    make(map[file.BlockId]int),
 	}
 
 	tx.recoveryMgr = NewRecoveryMgr(tx, lm, bm)
@@ -96,6 +98,7 @@ func (tx *Transaction) Pin(blk *file.BlockId) error {
 	if buff == nil {
 		return fmt.Errorf("transaction failed to pin block %v ", blk)
 	}
+	tx.myPins[*blk]++
 	tx.mybuffers[*blk] = buff
 	return nil
 }
@@ -104,9 +107,18 @@ func (tx *Transaction) Pin(blk *file.BlockId) error {
 // The transaction looks up the buffer pinned to this block,
 // and unpins it.
 func (tx *Transaction) Unpin(blk *file.BlockId) {
-	b := tx.mybuffers[*blk]
+	b, ok := tx.mybuffers[*blk]
+	if !ok {
+		return
+	}
 	tx.bm.Unpin(b)
-	delete(tx.mybuffers, *blk)
+	if tx.myPins[*blk] > 0 {
+		tx.myPins[*blk]--
+	}
+	if tx.myPins[*blk] == 0 {
+		delete(tx.mybuffers, *blk)
+	}
+
 }
 
 // GetInt returns the integer value stored at the

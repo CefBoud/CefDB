@@ -102,6 +102,10 @@ func (ts *TableScan) AtLastBlock() bool {
 	return ts.CurrentRecordPage.Blk.Blknum == lastBlock-1
 }
 
+func (ts *TableScan) HasField(fldname string) bool {
+	return ts.Layout.Schema.HasField(fldname)
+}
+
 func (ts *TableScan) GetInt(fname string) (int, error) {
 	return ts.CurrentRecordPage.GetInt(ts.currentSlot, fname)
 }
@@ -109,7 +113,7 @@ func (ts *TableScan) GetInt(fname string) (int, error) {
 func (ts *TableScan) GetString(fname string) (string, error) {
 	return ts.CurrentRecordPage.GetString(ts.currentSlot, fname)
 }
-func (ts *TableScan) GetVal(fname string, val any) (any, error) {
+func (ts *TableScan) GetVal(fname string) (any, error) {
 	if ts.Layout.Schema.FieldType(fname) == INTEGER {
 		return ts.GetInt(fname)
 	}
@@ -131,6 +135,9 @@ func (ts *TableScan) SetVal(fname string, val any) error {
 	return ts.SetString(fname, val.(string))
 }
 
+func (ts *TableScan) GetRid() RID {
+	return RID{BlkNum: ts.CurrentRecordPage.Blk.Blknum, Slot: ts.currentSlot}
+}
 func (ts *TableScan) MoveToRID(rid RID) error {
 	err := ts.MoveToBlock(rid.BlkNum)
 	if err != nil {
@@ -144,4 +151,8 @@ func (ts *TableScan) Unpin() {
 	if ts.CurrentRecordPage != nil {
 		ts.Tx.Unpin(ts.CurrentRecordPage.Blk)
 	}
+}
+
+func (ts *TableScan) Close() {
+	ts.Unpin()
 }
